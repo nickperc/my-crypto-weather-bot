@@ -1,8 +1,6 @@
 import os
 import requests
 import telepot
-import time
-from datetime import datetime
 
 
 # Function to fetch crypto prices
@@ -81,6 +79,7 @@ def create_message():
         message = (
             f"Привет, сосунки! Я ваш крипто босс😎.\n"
             f"Мой хоязин запрограммировал меня и теперь каждый день я буду писать вам в 9 утром и вечером.\n\n"
+            f"Вот вам курс крипты на сегодня, держите краба🦀\n\n"
             f"Crypto Prices Update:\n"
             f"Bitcoin: ${prices['Bitcoin']}\n"
             f"Ethereum: ${prices['Ethereum']}\n"
@@ -97,24 +96,8 @@ def create_message():
     return None
 
 
-# Function to check if it's time to send the message
-def should_send_message():
-    current_time = datetime.now().strftime('%H:%M')
-    return current_time == "09:00" or current_time == "21:00"
-
-
 if __name__ == "__main__":
-    # Send message on start
+    # Send message when the script is run (on first deploy or cron job)
     message = create_message()
     if message:
         send_message_via_telegram(message)
-
-    # Continue running to send messages at 9 AM and 9 PM
-    while True:
-        if should_send_message():
-            message = create_message()
-            if message:
-                send_message_via_telegram(message)
-
-        # Check every 60 seconds
-        time.sleep(60)
