@@ -2,6 +2,8 @@ import os
 import requests
 import telepot
 import time
+from datetime import datetime
+
 
 # Function to fetch crypto prices
 def fetch_crypto_prices():
@@ -28,9 +30,10 @@ def fetch_crypto_prices():
         print(f"Error fetching crypto prices: {e}")
         return None
 
+
 # Function to fetch weather data
 def fetch_weather(city):
-    api_key = os.getenv("OPENWEATHER_API_KEY")  # Securely fetching the API key from GitHub Secrets
+    api_key = os.getenv("OPENWEATHER_API_KEY")  # Securely fetching the API key
     url = f"http://api.openweathermap.org/data/2.5/weather"
     params = {
         'q': city,
@@ -51,10 +54,11 @@ def fetch_weather(city):
         print(f"Error fetching weather data for {city}: {e}")
         return None
 
+
 # Function to send a message via Telegram bot
 def send_message_via_telegram(message):
-    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")  # Securely fetching the bot token from GitHub Secrets
-    chat_id = os.getenv("CHAT_ID")  # Securely fetching the chat ID from GitHub Secrets
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")  # Securely fetching the bot token
+    chat_id = os.getenv("CHAT_ID")  # Securely fetching the chat ID
     if not bot_token or not chat_id:
         print("Error: Bot token or chat ID is missing.")
         return
@@ -66,30 +70,51 @@ def send_message_via_telegram(message):
     except Exception as e:
         print(f"Error sending message: {e}")
 
+
+# Function to create the message content
+def create_message():
+    prices = fetch_crypto_prices()
+    weather_chisinau = fetch_weather('Chisinau')
+    weather_abu_dhabi = fetch_weather('Abu Dhabi')
+
+    if prices and weather_chisinau and weather_abu_dhabi:
+        message = (
+            f"Привет, сосунки! Я ваш крипто босс😎.\n"
+            f"Мой хоязин запрограммировал меня и теперь каждый день я буду писать вам в 9 утром и вечером.\n\n"
+            f"Crypto Prices Update:\n"
+            f"Bitcoin: ${prices['Bitcoin']}\n"
+            f"Ethereum: ${prices['Ethereum']}\n"
+            f"Binance Coin: ${prices['Binance Coin']}\n"
+            f"TON: ${prices['TON']}\n"
+            f"Solana: ${prices['Solana']}\n"
+            f"Dogecoin: ${prices['Dogecoin']}\n"
+            f"Pepe: ${prices['Pepe']}\n\n"
+            f"Weather Updates:\n"
+            f"Chisinau: {weather_chisinau['Temperature']}°C, {weather_chisinau['Description']}\n"
+            f"Abu Dhabi: {weather_abu_dhabi['Temperature']}°C, {weather_abu_dhabi['Description']}"
+        )
+        return message
+    return None
+
+
+# Function to check if it's time to send the message
+def should_send_message():
+    current_time = datetime.now().strftime('%H:%M')
+    return current_time == "09:00" or current_time == "21:00"
+
+
 if __name__ == "__main__":
+    # Send message on start
+    message = create_message()
+    if message:
+        send_message_via_telegram(message)
+
+    # Continue running to send messages at 9 AM and 9 PM
     while True:
-        prices = fetch_crypto_prices()
-        weather_chisinau = fetch_weather('Chisinau')
-        weather_abu_dhabi = fetch_weather('Abu Dhabi')
+        if should_send_message():
+            message = create_message()
+            if message:
+                send_message_via_telegram(message)
 
-        if prices and weather_chisinau and weather_abu_dhabi:
-            message = (
-                f"Привет, сосунки! Я ваш крипто босс😎.\n"
-                f"Вот вам курс крипты на сегодня, держите краба🦀\n\n"
-                f"Crypto Prices Update:\n"
-                f"Bitcoin: ${prices['Bitcoin']}\n"
-                f"Ethereum: ${prices['Ethereum']}\n"
-                f"Binance Coin: ${prices['Binance Coin']}\n"
-                f"TON: ${prices['TON']}\n"
-                f"Solana: ${prices['Solana']}\n"
-                f"Dogecoin: ${prices['Dogecoin']}\n"
-                f"Pepe: ${prices['Pepe']}\n\n"
-                f"Weather Updates:\n"
-                f"Chisinau: {weather_chisinau['Temperature']}°C, {weather_chisinau['Description']}\n"
-                f"Abu Dhabi: {weather_abu_dhabi['Temperature']}°C, {weather_abu_dhabi['Description']}"
-            )
-            print(message)  # For local testing
-            send_message_via_telegram(message)
-
-        # Wait for 30 seconds before sending the next message
-        time.sleep(30)
+        # Check every 60 seconds
+        time.sleep(60)
