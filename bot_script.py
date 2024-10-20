@@ -9,22 +9,38 @@ def fetch_crypto_prices():
     url = "https://api.coingecko.com/api/v3/simple/price"
     params = {
         'ids': 'bitcoin,ethereum,binancecoin,the-open-network,solana,dogecoin,pepe,floki',
-        'vs_currencies': 'usd'
+        'vs_currencies': 'usd',
+        'include_market_cap': 'true'  # Include market cap in the response
     }
 
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
+
+        # Fetch Bitcoin market cap
+        btc_market_cap = data['bitcoin']['usd_market_cap']
+
+        # Fetch the total cryptocurrency market cap from a global endpoint
+        total_market_cap_url = "https://api.coingecko.com/api/v3/global"
+        total_market_cap_response = requests.get(total_market_cap_url)
+        total_market_cap_response.raise_for_status()
+        total_market_cap_data = total_market_cap_response.json()
+        total_market_cap = total_market_cap_data['data']['total_market_cap']['usd']
+
+        # Calculate Bitcoin market cap dominance
+        btc_dominance = (btc_market_cap / total_market_cap) * 100
+
         return {
             'Bitcoin': data['bitcoin']['usd'],
+            'Bitcoin Dominance': btc_dominance,  # Include Bitcoin dominance
             'Ethereum': data['ethereum']['usd'],
             'Binance Coin': data['binancecoin']['usd'],
             'TON': data['the-open-network']['usd'],
             'Solana': data['solana']['usd'],
             'Dogecoin': data['dogecoin']['usd'],
             'Pepe': f"{data['pepe']['usd']:.8f}",
-            'Floki': data['floki']['usd']  # Fetch Floki coin price
+            'Floki': data['floki']['usd']
         }
     except Exception as e:
         print(f"Error fetching crypto prices: {e}")
@@ -160,6 +176,7 @@ def create_message():
             # f"  [Weather Icon](http://openweathermap.org/img/wn/{weather_abu_dhabi['Icon']}@2x.png)\n\n"
             f"🐸Crypto Prices Update:\n"
             f"Bitcoin: ${prices['Bitcoin']}\n"
+            f"🔔Bitcoin Dominance: {prices['Bitcoin Dominance']:.2f}%\n"
             f"Ethereum: ${prices['Ethereum']}\n"
             f"Binance Coin: ${prices['Binance Coin']}\n"
             f"TON: ${prices['TON']}\n"
