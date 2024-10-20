@@ -1,6 +1,7 @@
 import os
 import requests
 import telepot
+from datetime import datetime
 
 
 # Function to fetch crypto prices
@@ -30,6 +31,11 @@ def fetch_crypto_prices():
         return None
 
 
+# Function to format UNIX timestamps into human-readable time
+def format_time(unix_timestamp, timezone_offset):
+    return datetime.utcfromtimestamp(unix_timestamp + timezone_offset).strftime('%H:%M %p')
+
+
 # Function to fetch weather data
 def fetch_weather(city):
     api_key = os.getenv("OPENWEATHER_API_KEY")  # Securely fetching the API key
@@ -44,11 +50,21 @@ def fetch_weather(city):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return {
+
+        weather_info = {
             'City': city,
             'Temperature': data['main']['temp'],
-            'Description': data['weather'][0]['description'].capitalize()
+            'Feels Like': data['main']['feels_like'],
+            'Min Temp': data['main']['temp_min'],
+            'Max Temp': data['main']['temp_max'],
+            'Humidity': data['main']['humidity'],
+            'Wind Speed': data['wind']['speed'],
+            'Weather Description': data['weather'][0]['description'].capitalize(),
+            # 'Icon': data['weather'][0]['icon'],  # Weather icon code
+            'Sunrise': format_time(data['sys']['sunrise'], data['timezone']),
+            'Sunset': format_time(data['sys']['sunset'], data['timezone'])
         }
+        return weather_info
     except Exception as e:
         print(f"Error fetching weather data for {city}: {e}")
         return None
@@ -78,8 +94,11 @@ def fetch_trending_coin():
         coin_details_response.raise_for_status()
         coin_details = coin_details_response.json()
 
-        trending_coin['Market Cap'] = coin_details['market_data']['market_cap']['usd'] if 'market_cap' in coin_details['market_data'] else 'N/A'
-        trending_coin['Total Volume'] = coin_details['market_data']['total_volume']['usd'] if 'total_volume' in coin_details['market_data'] else 'N/A'
+        trending_coin['Market Cap'] = coin_details['market_data']['market_cap']['usd'] if 'market_cap' in coin_details[
+            'market_data'] else 'N/A'
+        trending_coin['Total Volume'] = coin_details['market_data']['total_volume']['usd'] if 'total_volume' in \
+                                                                                              coin_details[
+                                                                                                  'market_data'] else 'N/A'
 
         return trending_coin
     except Exception as e:
@@ -125,8 +144,20 @@ def create_message():
             f"Мой хоязин запрограммировал меня и теперь каждый день я буду писать вам в 9 утром и вечером.\n\n"
             f"Вот вам курс крипты на сегодня, держите краба🦀\n\n"
             f"☂️Weather Updates:\n"
-            f"Chisinau: {weather_chisinau['Temperature']}°C, {weather_chisinau['Description']}\n"
-            f"Abu Dhabi: {weather_abu_dhabi['Temperature']}°C, {weather_abu_dhabi['Description']}\n\n"
+            f"Chisinau: {weather_chisinau['Temperature']}°C, {weather_chisinau['Weather Description']}\n"
+            f"  💁🏻‍♂️Feels like: {weather_chisinau['Feels Like']}°C\n"
+            f"  ⬇️Min Temp: {weather_chisinau['Min Temp']}°C, ⬆️Max Temp: {weather_chisinau['Max Temp']}°C\n"
+            f"  💨Wind Speed: {weather_chisinau['Wind Speed']} m/s\n"
+            f"  💦Humidity: {weather_chisinau['Humidity']}%\n"
+            f"  🌅Sunrise: {weather_chisinau['Sunrise']}, 🌇Sunset: {weather_chisinau['Sunset']}\n\n"
+            # f"  [Weather Icon](http://openweathermap.org/img/wn/{weather_chisinau['Icon']}@2x.png)\n"
+            f"Abu Dhabi: {weather_abu_dhabi['Temperature']}°C, {weather_abu_dhabi['Weather Description']}\n"
+            f"  💁🏻‍♂️Feels like: {weather_abu_dhabi['Feels Like']}°C\n"
+            f"  ⬇️Min Temp: {weather_abu_dhabi['Min Temp']}°C, ⬆️Max Temp: {weather_abu_dhabi['Max Temp']}°C\n"
+            f"  💨Wind Speed: {weather_abu_dhabi['Wind Speed']} m/s\n"
+            f"  💦Humidity: {weather_abu_dhabi['Humidity']}%\n"
+            f"  🌅Sunrise: {weather_abu_dhabi['Sunrise']}, 🌇Sunset: {weather_abu_dhabi['Sunset']}\n\n"
+            # f"  [Weather Icon](http://openweathermap.org/img/wn/{weather_abu_dhabi['Icon']}@2x.png)\n\n"
             f"🐸Crypto Prices Update:\n"
             f"Bitcoin: ${prices['Bitcoin']}\n"
             f"Ethereum: ${prices['Ethereum']}\n"
@@ -152,30 +183,24 @@ def create_message():
             f"AED: {exchange_rates['USD to AED']:.2f}\n"
             f"RON: {exchange_rates['USD to RON']:.2f}\n"
             f"RUB: {exchange_rates['USD to RUB']:.2f}\n"
-            f"UAH: {exchange_rates['USD to UAH']:.2f}"
+            f"UAH: {exchange_rates['USD to UAH']:.2f}\n"
         )
         return message
     return None
 
 
-# Function to send a message via Telegram bot
+# Function to send message via Telegram
 def send_message_via_telegram(message):
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")  # Securely fetching the bot token
     chat_id = os.getenv("CHAT_ID")  # Securely fetching the chat ID
-    if not bot_token or not chat_id:
-        print("Error: Bot token or chat ID is missing.")
-        return
-
     bot = telepot.Bot(bot_token)
-    try:
-        bot.sendMessage(chat_id, message)
-        print(f"Message sent successfully to chat ID: {chat_id}")
-    except Exception as e:
-        print(f"Error sending message: {e}")
+    bot.sendMessage(chat_id, message)
 
 
 if __name__ == "__main__":
-    # Send message when the script is run (on first deploy or cron job)
     message = create_message()
     if message:
         send_message_via_telegram(message)
+        print("Message sent successfully!")
+    else:
+        print("Failed to fetch data or create the message.")
