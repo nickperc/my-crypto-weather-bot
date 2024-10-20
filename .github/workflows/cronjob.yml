@@ -2,7 +2,7 @@ name: Crypto and Weather Bot
 
 on:
   schedule:
-    - cron: '0 9,21 * * *'  # Runs at 9 AM and 9 PM
+    - cron: '0 5,17 * * *'  # Runs at 9 AM and 9 PM
   workflow_dispatch:
 
 jobs:
