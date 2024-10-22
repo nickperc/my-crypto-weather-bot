@@ -1,8 +1,107 @@
 import os
 import requests
 import telepot
-from datetime import datetime
+from datetime import datetime, timedelta
 
+# Function to fetch crypto prices from cryptorank.io
+def fetch_crypto_prices_cr():
+    url = "https://api.cryptorank.io/v1/currencies"
+    params = {
+        'api_key': os.getenv("CRYPTO_RANK_API_KEY"),
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()['data']
+
+        crypto_data = {}
+        for crypto in data:
+            name = crypto['name']
+            values = crypto['values']['USD']
+
+            crypto_data[name] = {
+                'Price': values['price'],
+                'Volume (24h)': values['volume24h'],
+                'High (24h)': values['high24h'],
+                'Low (24h)': values['low24h'],
+                'Market Cap': values['marketCap'],
+                'Percent Change (24h)': values['percentChange24h'],
+                'Percent Change (7d)': values['percentChange7d'],
+                'Percent Change (30d)': values['percentChange30d'],
+                'Percent Change (3m)': values['percentChange3m'],
+                'Percent Change (6m)': values['percentChange6m']
+            }
+
+        return crypto_data
+
+    except Exception as e:
+        print(f"Error fetching crypto prices: {e}")
+        return None
+
+# Function to fetch market cap dominance (BTC, ETH)
+def fetch_market_cap_dominance_cr():
+    url = "https://api.cryptorank.io/v1/global"
+    params = {
+        'api_key': os.getenv("CRYPTO_RANK_API_KEY"),
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()['data']
+
+        return {
+            'BTC Dominance': data['btcDominance'],
+            'ETH Dominance': data['ethDominance']
+        }
+    except Exception as e:
+        print(f"Error fetching market cap dominance: {e}")
+        return None
+
+# Helper function to get the correct emoji based on percentage change
+def get_trend_emoji(value):
+    # Ensure the value is a number (default to 0 if None)
+    value = value if value is not None else 0
+    return "📈" if value > 0 else "📉"
+
+# Helper function to safely format values, replacing None with 'N/A' or default
+def safe_format(value, default='N/A', precision=2):
+    return f"{value:.{precision}f}" if value is not None else default
+
+# Function to create message for specific cryptocurrency
+def create_crypto_message_cr(name, details, dominance=None):
+    # Only include dominance if it's provided
+    dominance_line = f"🌐 Dominance: {safe_format(dominance)}%\n" if dominance is not None else ""
+
+    # Safely format values
+    price = safe_format(details.get('Price'))
+    volume_24h = safe_format(details.get('Volume (24h)'))
+    high_24h = safe_format(details.get('High (24h)'))
+    low_24h = safe_format(details.get('Low (24h)'))
+    market_cap = safe_format(details.get('Market Cap'))
+    percent_change_24h = safe_format(details.get('Percent Change (24h)'))
+    percent_change_7d = safe_format(details.get('Percent Change (7d)'))
+    percent_change_30d = safe_format(details.get('Percent Change (30d)'))
+    percent_change_3m = safe_format(details.get('Percent Change (3m)'))
+    percent_change_6m = safe_format(details.get('Percent Change (6m)'))
+
+    # Generate the message with emojis
+    return (
+        f"💰 {name}:\n"
+        f"💵 Price: ${price}\n"
+        f"{dominance_line}"
+        f"📊 Volume (24h): ${volume_24h}\n"
+        f"📈 High (24h): ${high_24h}\n"
+        f"📉 Low (24h): ${low_24h}\n"
+        f"🏦 Market Cap: ${market_cap}\n"
+        f"{get_trend_emoji(details.get('Percent Change (24h)', 0))} Percent Change (24h): {percent_change_24h}%\n"
+        f"{get_trend_emoji(details.get('Percent Change (7d)', 0))} Percent Change (7d): {percent_change_7d}%\n"
+        f"{get_trend_emoji(details.get('Percent Change (30d)', 0))} Percent Change (30d): {percent_change_30d}%\n"
+        f"{get_trend_emoji(details.get('Percent Change (3m)', 0))} Percent Change (3m): {percent_change_3m}%\n"
+        f"{get_trend_emoji(details.get('Percent Change (6m)', 0))} Percent Change (6m): {percent_change_6m}%\n"
+        f"\n"
+    )
 
 # Function to fetch crypto prices
 def fetch_crypto_prices():
@@ -144,10 +243,25 @@ def fetch_exchange_rates():
         print(f"Error fetching exchange rates: {e}")
         return None
 
+# Function to determine if it's morning or evening based on UTC+4
+def get_greeting():
+    # Get the current time in UTC and add 4 hours
+    current_time_utc = datetime.utcnow()
+    adjusted_time = current_time_utc + timedelta(hours=12)
+
+    # Check if the adjusted time is before or after 12 PM
+    if adjusted_time.hour < 12:
+        return "Доброе утро"
+    else:
+        return "Добрый вечер"
+
 
 # Function to create the message content
 def create_message():
+    greeting = get_greeting()  # Get the appropriate greeting based on time
     prices = fetch_crypto_prices()
+    crypto_prices = fetch_crypto_prices_cr()
+    dominance = fetch_market_cap_dominance_cr()
     weather_chisinau = fetch_weather('Chisinau')
     weather_abu_dhabi = fetch_weather('Abu Dhabi')
     trending_coin = fetch_trending_coin()
@@ -156,35 +270,27 @@ def create_message():
     if prices and weather_chisinau and weather_abu_dhabi and trending_coin and exchange_rates:
         message = (
             f"📢\n"
-            f"Привет, сосунки! Я ваш крипто босс😎.\n"
-            f"Мой хоязин запрограммировал меня и теперь каждый день я буду писать вам в 9 утром и вечером.\n\n"
-            f"Вот вам курс крипты на сегодня, держите краба🦀\n\n"
+            f"{greeting}, криптанам!😎\n"  # Use the greeting here
+            f"Update на сегодня, держите краба🦀\n\n"
             f"☂️Weather Updates:\n"
             f"Chisinau: {weather_chisinau['Temperature']}°C, {weather_chisinau['Weather Description']}\n"
             f"  💁🏻‍♂️Feels like: {weather_chisinau['Feels Like']}°C\n"
             f"  ⬇️Min Temp: {weather_chisinau['Min Temp']}°C, ⬆️Max Temp: {weather_chisinau['Max Temp']}°C\n"
-            f"  💨Wind Speed: {weather_chisinau['Wind Speed']} m/s\n"
-            f"  💦Humidity: {weather_chisinau['Humidity']}%\n"
             f"  🌅Sunrise: {weather_chisinau['Sunrise']}, 🌇Sunset: {weather_chisinau['Sunset']}\n\n"
-            # f"  [Weather Icon](http://openweathermap.org/img/wn/{weather_chisinau['Icon']}@2x.png)\n"
             f"Abu Dhabi: {weather_abu_dhabi['Temperature']}°C, {weather_abu_dhabi['Weather Description']}\n"
             f"  💁🏻‍♂️Feels like: {weather_abu_dhabi['Feels Like']}°C\n"
             f"  ⬇️Min Temp: {weather_abu_dhabi['Min Temp']}°C, ⬆️Max Temp: {weather_abu_dhabi['Max Temp']}°C\n"
-            f"  💨Wind Speed: {weather_abu_dhabi['Wind Speed']} m/s\n"
-            f"  💦Humidity: {weather_abu_dhabi['Humidity']}%\n"
             f"  🌅Sunrise: {weather_abu_dhabi['Sunrise']}, 🌇Sunset: {weather_abu_dhabi['Sunset']}\n\n"
-            # f"  [Weather Icon](http://openweathermap.org/img/wn/{weather_abu_dhabi['Icon']}@2x.png)\n\n"
             f"🐸Crypto Prices Update:\n"
-            f"Bitcoin: ${prices['Bitcoin']}\n"
-            f"🔔Bitcoin Dominance: {prices['Bitcoin Dominance']:.2f}%\n"
-            f"Ethereum: ${prices['Ethereum']}\n"
-            f"Binance Coin: ${prices['Binance Coin']}\n"
-            f"TON: ${prices['TON']}\n"
-            f"Solana: ${prices['Solana']}\n"
-            f"Dogecoin: ${prices['Dogecoin']}\n"
-            f"Pepe: ${prices['Pepe']}\n"
-            f"Floki: ${prices['Floki']}\n\n"
-            f"📈Trending Coin for Today:\n"
+            f"{create_crypto_message_cr("Bitcoin", crypto_prices['Bitcoin'], dominance['BTC Dominance'])}"
+            f"{create_crypto_message_cr("Ethereum", crypto_prices['Ethereum'], dominance['ETH Dominance'])}"
+            f"🪙Binance Coin: ${prices['Binance Coin']}\n"
+            f"🪙TON: ${prices['TON']}\n"
+            f"🪙Solana: ${prices['Solana']}\n"
+            f"🪙Dogecoin: ${prices['Dogecoin']}\n"
+            f"🪙Pepe: ${prices['Pepe']}\n"
+            f"🪙Floki: ${prices['Floki']}\n\n"
+            f"📈🪙Trending Coin for Today:\n"
             f"Name: {trending_coin['Name']}\n"
             f"Symbol: {trending_coin['Symbol']}\n"
             f"Price: {trending_coin['Price']}\n"
