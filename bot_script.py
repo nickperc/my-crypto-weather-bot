@@ -252,7 +252,7 @@ def get_greeting():
     adjusted_time = current_time_utc + timedelta(hours=4)
 
     # Check if the adjusted time is before or after 12 PM
-    if adjusted_time.hour < 12:
+    if 5 <= adjusted_time.hour < 12:
         return "Доброе утро"
     else:
         return "Добрый вечер"
