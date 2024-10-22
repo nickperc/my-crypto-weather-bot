@@ -249,7 +249,7 @@ def fetch_exchange_rates():
 def get_greeting():
     # Get the current time in UTC and add 4 hours
     current_time_utc = datetime.utcnow()
-    adjusted_time = current_time_utc + timedelta(hours=12)
+    adjusted_time = current_time_utc + timedelta(hours=4)
 
     # Check if the adjusted time is before or after 12 PM
     if adjusted_time.hour < 12:
