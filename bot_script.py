@@ -6,8 +6,9 @@ from datetime import datetime, timedelta
 # Function to fetch crypto prices from cryptorank.io
 def fetch_crypto_prices_cr():
     url = "https://api.cryptorank.io/v1/currencies"
+    api_key = os.getenv("CRYPTO_RANK_API_KEY")
     params = {
-        'api_key': os.getenv("CRYPTO_RANK_API_KEY"),
+        'api_key': api_key,
     }
 
     try:
@@ -42,8 +43,9 @@ def fetch_crypto_prices_cr():
 # Function to fetch market cap dominance (BTC, ETH)
 def fetch_market_cap_dominance_cr():
     url = "https://api.cryptorank.io/v1/global"
+    api_key = os.getenv("CRYPTO_RANK_API_KEY")
     params = {
-        'api_key': os.getenv("CRYPTO_RANK_API_KEY"),
+        'api_key': api_key,
     }
 
     try:
