@@ -26,5 +26,6 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         CHAT_ID: ${{ secrets.CHAT_ID }}
         OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+        CRYPTO_RANK_API_KEY: ${{ secrets.CRYPTO_RANK_API_KEY }}
       run: |
         python bot_script.py
