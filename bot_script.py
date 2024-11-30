@@ -42,14 +42,14 @@ def fetch_crypto_prices_cr():
 
 # Function to fetch market cap dominance (BTC, ETH)
 def fetch_market_cap_dominance_cr():
-    url = "https://api.cryptorank.io/v1/global"
+    url = "https://api.cryptorank.io/v2/global"
     api_key = os.getenv("CRYPTO_RANK_API_KEY")
-    params = {
-        'api_key': api_key
+    headers = {
+        'X-Api-Key': api_key
     }
 
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()['data']
 
